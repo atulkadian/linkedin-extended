@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Job Cleaner</title>
+    <style>
+      body {
+        width: 300px;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+      .checkbox-group {
+        margin: 10px 0;
+      }
+      button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="checkbox-group">
+      <input type="checkbox" id="remove-easy-apply-jobs" />
+      <label for="remove-easy-apply-jobs">Remove Easy Apply Jobs</label>
+    </div>
+    <div class="checkbox-group">
+      <input type="checkbox" id="remove-promoted-jobs" />
+      <label for="remove-promoted-jobs">Remove Promoted Jobs</label>
+    </div>
+    <button id="clean-jobs">Clean Jobs</button>
+    <script src="script.js"></script>
+  </body>
+</html>
