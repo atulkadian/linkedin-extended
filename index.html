@@ -4,7 +4,7 @@
     <title>Job Cleaner</title>
     <style>
       body {
-        width: 300px;
+        width: 350px;
         padding: 20px;
         font-family: Arial, sans-serif;
       }
@@ -21,6 +21,41 @@
         margin: 10px 0;
         font-size: 16px;
       }
+      .company-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+      .company-section h3 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 80px;
+        padding: 8px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        resize: vertical;
+      }
+      .hint {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+      .save-btn {
+        background-color: #0a66c2;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      .save-btn:hover {
+        background-color: #004182;
+      }
     </style>
   </head>
   <body>
@@ -36,7 +71,19 @@
       <input type="checkbox" id="remove-viewed-jobs" />
       <label for="remove-viewed-jobs">Remove Viewed Jobs</label>
     </div>
-    <button id="clean-jobs">Clean Jobs</button>
+
+    <div class="company-section">
+      <h3>Blocked Companies</h3>
+      <textarea
+        id="blocked-companies"
+        placeholder="Enter company names, one per line&#10;e.g., Apple&#10;Amazon&#10;Google"
+      ></textarea>
+      <div class="hint">
+        Jobs from these companies will be automatically hidden
+      </div>
+    </div>
+
+    <button id="save-settings" class="save-btn">Save Settings</button>
     <script src="script.js"></script>
   </body>
 </html>

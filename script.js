@@ -1,97 +1,72 @@
-document.getElementById("clean-jobs").addEventListener("click", () => {
-  const removeEasyApplyJobsChecked = document.getElementById(
+// Load saved settings when popup opens
+document.addEventListener("DOMContentLoaded", () => {
+  chrome.storage.sync.get(
+    ["removeEasyApply", "removePromoted", "removeViewed", "blockedCompanies"],
+    (data) => {
+      document.getElementById("remove-easy-apply-jobs").checked =
+        data.removeEasyApply || false;
+      document.getElementById("remove-promoted-jobs").checked =
+        data.removePromoted || false;
+      document.getElementById("remove-viewed-jobs").checked =
+        data.removeViewed || false;
+
+      // Load blocked companies
+      if (data.blockedCompanies && data.blockedCompanies.length > 0) {
+        document.getElementById("blocked-companies").value =
+          data.blockedCompanies.join("\n");
+      }
+    }
+  );
+});
+
+// Save settings and apply filters
+document.getElementById("save-settings").addEventListener("click", () => {
+  const removeEasyApply = document.getElementById(
     "remove-easy-apply-jobs"
   ).checked;
-  const removePromotedJobsChecked = document.getElementById(
+  const removePromoted = document.getElementById(
     "remove-promoted-jobs"
   ).checked;
-  const removeViewedJobsChecked =
-    document.getElementById("remove-viewed-jobs").checked;
+  const removeViewed = document.getElementById("remove-viewed-jobs").checked;
 
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: (
-        removeEasyApplyJobsChecked,
-        removePromotedJobsChecked,
-        removeViewedJobsChecked
-      ) => {
-        function removeEasyApplyJobs() {
-          console.log("Removing Easy Apply Jobs");
+  // Get blocked companies from textarea
+  const blockedCompaniesText =
+    document.getElementById("blocked-companies").value;
+  const blockedCompanies = blockedCompaniesText
+    .split("\n")
+    .map((company) => company.trim())
+    .filter((company) => company.length > 0);
 
-          // Select all list items on the page
-          const listItems = document.querySelectorAll("li");
+  // Save settings to chrome.storage
+  chrome.storage.sync.set(
+    {
+      removeEasyApply,
+      removePromoted,
+      removeViewed,
+      blockedCompanies,
+    },
+    () => {
+      // Send message to content script to apply filters immediately
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (tab && tab.id) {
+          chrome.tabs.sendMessage(
+            tab.id,
+            { action: "applyFilters" },
+            (response) => {
+              // Show feedback to user
+              const button = document.getElementById("save-settings");
+              const originalText = button.textContent;
+              button.textContent = "Settings Saved!";
+              button.style.backgroundColor = "#057642";
 
-          listItems.forEach((item) => {
-            // Check if the list item contains a descendant with the target class for Easy Apply
-            if (
-              item.querySelector(
-                ".job-card-container__apply-method.job-card-container__footer-item.inline-flex.align-items-center"
-              )
-            ) {
-              // Remove the list item if the class is found
-              item.remove();
+              setTimeout(() => {
+                button.textContent = originalText;
+                button.style.backgroundColor = "#0a66c2";
+              }, 2000);
             }
-          });
+          );
         }
-
-        function removePromotedJobs() {
-          console.log("Removing Promoted Jobs");
-
-          // Select all list items on the page
-          const listItems = document.querySelectorAll("li");
-
-          listItems.forEach((item) => {
-            // Check if the list item contains a descendant with the target class for Promoted
-            if (
-              item
-                .querySelector(
-                  ".job-card-container__footer-item.inline-flex.align-items-center"
-                )
-                ?.textContent.includes("Promoted")
-            ) {
-              // Remove the list item if the class is found
-              item.remove();
-            }
-          });
-        }
-
-        function removeViewedJobs() {
-          console.log("Removing Viewed Jobs");
-
-          // Select all list items on the page
-          const listItems = document.querySelectorAll("li");
-
-          listItems.forEach((item) => {
-            // Check if the list item contains a descendant with the target class for Viewed
-            if (
-              item
-                .querySelector(
-                  ".job-card-container__footer-item.job-card-container__footer-job-state.t-bold"
-                )
-                ?.textContent.includes("Viewed")
-            ) {
-              // Remove the list item if the class is found
-              item.remove();
-            }
-          });
-        }
-
-        if (removeEasyApplyJobsChecked) {
-          removeEasyApplyJobs();
-        }
-        if (removePromotedJobsChecked) {
-          removePromotedJobs();
-        }
-        if (removeViewedJobsChecked) {
-          removeViewedJobs();
-        }
-      },
-      args: [
-        removeEasyApplyJobsChecked,
-        removePromotedJobsChecked,
-        removeViewedJobsChecked,
-      ],
-    });
-  });
+      });
+    }
+  );
 });
