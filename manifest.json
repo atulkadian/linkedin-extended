@@ -2,7 +2,7 @@
   "name": "LinkedIn Filters Extended",
   "description": "This extension enables powerful filters on LinkedIn Jobs search results.",
   "manifest_version": 3,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "icons": {
     "96": "assets/li+iconNew.png"
   },
