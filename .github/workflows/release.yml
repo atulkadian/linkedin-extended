@@ -1,0 +1,154 @@
+name: Build and Release Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Get current version
+        id: get_version
+        run: |
+          CURRENT_VERSION=$(jq -r '.version' manifest.json)
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          CURRENT_VERSION="${{ steps.get_version.outputs.current_version }}"
+          BUMP_TYPE="${{ github.event.inputs.version_bump }}"
+
+          IFS='.' read -r -a version_parts <<< "$CURRENT_VERSION"
+          major="${version_parts[0]}"
+          minor="${version_parts[1]}"
+          patch="${version_parts[2]:-0}"
+
+          case $BUMP_TYPE in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          NEW_VERSION="$major.$minor.$patch"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Update manifest.json version
+        run: |
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          jq --arg version "$NEW_VERSION" '.version = $version' manifest.json > manifest.tmp
+          mv manifest.tmp manifest.json
+          cat manifest.json
+
+      - name: Create extension package
+        run: |
+          mkdir -p dist
+          zip -r dist/linkedin-filters-extended-v${{ steps.bump_version.outputs.new_version }}.zip \
+            manifest.json \
+            index.html \
+            script.js \
+            content.js \
+            assets/ \
+            -x "*.DS_Store"
+
+          echo "Package created: linkedin-filters-extended-v${{ steps.bump_version.outputs.new_version }}.zip"
+          ls -lh dist/
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add manifest.json
+          git commit -m "chore: bump version to ${{ steps.bump_version.outputs.new_version }}"
+          git tag "v${{ steps.bump_version.outputs.new_version }}"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+          tags: true
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          cat << EOF > release_notes.md
+          ## LinkedIn Filters Extended v${{ steps.bump_version.outputs.new_version }}
+
+          ### Features
+          - Filter out Easy Apply jobs
+          - Filter out Promoted jobs
+          - Filter out Viewed jobs
+          - Block jobs from specific companies
+          - Automatic filtering on page load and pagination
+
+          ### Installation
+          1. Download the \`linkedin-filters-extended-v${{ steps.bump_version.outputs.new_version }}.zip\` file
+          2. Extract the contents
+          3. Open Chrome and navigate to \`chrome://extensions/\`
+          4. Enable "Developer mode"
+          5. Click "Load unpacked" and select the extracted folder
+
+          ### Usage
+          1. Visit LinkedIn Jobs page
+          2. Click the extension icon to configure filters
+          3. Add companies to block (one per line)
+          4. Check/uncheck filter options
+          5. Click "Save Settings"
+          6. Filters will automatically apply on all LinkedIn job pages!
+          EOF
+
+          echo "Release notes created"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}
+          name: LinkedIn Filters Extended v${{ steps.bump_version.outputs.new_version }}
+          body_path: release_notes.md
+          files: |
+            dist/linkedin-filters-extended-v${{ steps.bump_version.outputs.new_version }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Success message
+        run: |
+          echo "✅ Successfully created release v${{ steps.bump_version.outputs.new_version }}"
+          echo "📦 Extension package uploaded to GitHub Releases"
+          echo "🔗 Check: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.bump_version.outputs.new_version }}"
