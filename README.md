@@ -2,6 +2,10 @@
 
 A Chrome extension that enables powerful filtering on LinkedIn Jobs search results.
 
+![Extension Interface](assets/screenshot.png)
+
+_Configure filters and block companies with an intuitive interface_
+
 ## Features
 
 - ✅ **Remove Easy Apply Jobs**: Filter out jobs with easy apply
